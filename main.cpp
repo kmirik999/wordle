@@ -9,83 +9,33 @@
 #include <sstream>
 
 using namespace std;
-
-class Wordle {
+class Game {
 private:
-    int WordLength;
-    string filePath;
-    const int NotMatched = 0;
-    const int PartialMatch = 1;
-    const int Match = 2;
-    const int NumberOfGuesses = 6;
-    vector<vector<int>> matches;
-    vector<string> guesses;
+    int WordLength{};
+    int NumberOfGuesses = 6;
 
 public:
-    int getNumberOfGuesses() {
+    int getNumberOfGuesses() const  {
         return NumberOfGuesses;
     }
 
-    int getWordLength() {
+    int getWordLength() const {
         return WordLength;
     }
     void setWordLength(int newWordLength) {
         WordLength = newWordLength;
     }
-    string getFilePath() {
-        return filePath;
-    }
-    void setFilePath(string newFilePath) {
-        filePath = std::move(newFilePath);
-    }
-    Wordle() {}
-    Wordle(int wordLength, string filePath) : WordLength(wordLength), filePath(move(filePath)) {}
+};
 
-     void toUpperCase(string& input) {
-        transform(input.begin(), input.end(), input.begin(), [](unsigned char c) { return toupper(c); });
-     }
+class Wordle : public Game{
+private:
+    int WordLength{};
+    const int PartialMatch = 1;
+    const int Match = 2;
+    const int NumberOfGuesses = 6;
 
-    string getRandomWord()
-    {
-        int i = 0;
-        vector<string> GenerateRandomWord;
-        string word1;
-
-        random_device rd;
-        mt19937 gen(rd());
-
-
-        cout << filePath << endl;
-        ifstream fileRandomNames(filePath);
-        if (!fileRandomNames.is_open()) {
-            cout << "Error: unable to open file" << endl;
-            return "";
-        }
-
-        string line;
-
-        while (getline(fileRandomNames, line))
-        {
-            istringstream iss(line);
-
-            iss >> word1;
-
-            GenerateRandomWord.push_back(word1);
-            i++;
-        }
-        uniform_int_distribution<> disRandomProduct(0, i - 1);
-        int id;
-        do {
-            id = disRandomProduct(gen);
-        } while (GenerateRandomWord.at(id).length() != WordLength);
-        string result = GenerateRandomWord.at(id);
-        toUpperCase(result);
-        return result;
-    }
-
-    bool isValidWord(const string& word) const {
-        return word.length() == WordLength && word.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") == string::npos;
-    }
+public:
+    Wordle() = default;
 
     void markMatches(vector<vector<int>>& matches, int currentGuessIndex, string targetWord, string guessWord) const
     {
@@ -94,7 +44,7 @@ public:
         {
             for (int j = 0; j < targetWord.length(); j++)
             {
-                if (/*matches[currentGuessIndex][i] == NotMatched &&*/ guessWord[i] == targetWord[j])
+                if ( guessWord[i] == targetWord[j])
                 {
                     if (i == j)
                     {
@@ -119,7 +69,7 @@ public:
     }
 
 
-    void printWordle(vector<vector<int>> matches, vector<string> guesses, int currentGuessIndex)
+    void printWordle(vector<vector<int>> matches, vector<string> guesses, int currentGuessIndex) const
     {
         for (int i = 0; i <= currentGuessIndex; i++) {
             std::string separator = "-";
@@ -133,7 +83,8 @@ public:
                 text += " ";
                 if (matches[i][j] == PartialMatch) {
                     text += "\033[33m";
-                } else if (matches[i][j] == Match) {
+                }
+                else if (matches[i][j] == Match) {
                     text += "\033[32m";
                 }
                 text += value;
@@ -141,7 +92,6 @@ public:
                     text += "\033[0m";
                 }
                 text += "   |";
-
             }
             if (i == 0) {
                 std::cout << separator << std::endl;
@@ -154,10 +104,67 @@ public:
     }
 };
 
+class WordProvider : public Game{
+private:
+    string filePath;
+public:
+    void setFilePath(string newFilePath) {
+        filePath = std::move(newFilePath);
+    }
+    WordProvider() = default;
+
+    static void toUpperCase(string& input) {
+        transform(input.begin(), input.end(), input.begin(), [](unsigned char c) { return toupper(c); });
+    }
+
+    string getRandomWord(int WordLength)
+    {
+        int i = 0;
+        vector<string> GenerateRandomWord;
+        string word1;
+
+        random_device rd;
+        mt19937 gen(rd());
+
+
+        cout << filePath << endl;
+        ifstream fileRandomNames(filePath);
+        if (!fileRandomNames.is_open()) {
+            cout << "Error: unable to open file" << endl;
+            return "";
+        }
+
+
+        string line;
+        while (getline(fileRandomNames, line))
+        {
+            istringstream iss(line);
+
+            iss >> word1;
+
+            GenerateRandomWord.push_back(word1);
+            i++;
+        }
+        uniform_int_distribution<> disRandomProduct(0, i - 1);
+        int id;
+        do {
+            id = disRandomProduct(gen);
+        } while (GenerateRandomWord.at(id).length() != WordLength);
+        string result = GenerateRandomWord.at(id);
+        toUpperCase(result);
+        return result;
+    }
+
+    static bool isValidWord(const string& word, int WordLength) {
+        return word.length() == WordLength && word.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") == string::npos;
+    }
+};
+
 
 int main() {
     int selection;
     Wordle w = Wordle();
+    WordProvider wp = WordProvider();
     cout << "Enter 1 --- Easy  --- 5 letters word" << endl;
     cout << "Enter 2 --- Medium --- 7 letters word" << endl;
     cout << "Enter 3 --- Hard --- 9 letters word" << endl;
@@ -165,20 +172,19 @@ int main() {
     cin >> selection;
     switch (selection) {
         case 1:
-
             w.setWordLength(5);
-            w.setFilePath("data.txt");
+            wp.setFilePath("data.txt");
             break;
         case 2:
             w.setWordLength(7);
-            w.setFilePath("data1.txt");
+            wp.setFilePath("data1.txt");
             break;
         case 3:
             w.setWordLength(9);
-            w.setFilePath("data2.txt");
+            wp.setFilePath("data2.txt");
             break;
     }
-    string targetWord = w.getRandomWord();
+    string targetWord = wp.getRandomWord(w.getWordLength());
     vector<string> guesses;
     vector<vector<int>> matches(w.getNumberOfGuesses(), vector<int>(w.getWordLength()));
     int currentGuessIndex = -1;
@@ -189,8 +195,8 @@ int main() {
         if (guess == "Q" || guess == "q") {
             break;
         }
-        w.toUpperCase(guess);
-        if (!w.isValidWord(guess)) {
+        WordProvider::toUpperCase(guess);
+        if (!WordProvider::isValidWord(guess, w.getWordLength())) {
             cout << "Invalid word. Please enter a valid word of length " << w.getWordLength() << endl;
             continue;
         }
